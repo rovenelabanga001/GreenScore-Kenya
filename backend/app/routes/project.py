@@ -49,3 +49,30 @@ def create_project():
         "message": "Project created successfully",
         "project": project.to_dict()
     }), 201
+
+
+@project_bp.route("/all", methods=["GET"])
+def get_projects():
+
+    projects = Project.query.all()
+
+    return jsonify({
+        "count": len(projects),
+        "projects": [project.to_dict() for project in projects]
+    }), 200
+
+
+# GET SINGLE PROJECT
+@project_bp.route("/<int:id>", methods=["GET"])
+def get_project(id):
+
+    project = Project.query.get(id)
+
+    if not project:
+        return jsonify({
+            "error": "Project not found"
+        }), 404
+
+    return jsonify({
+        "project": project.to_dict()
+    }), 200
