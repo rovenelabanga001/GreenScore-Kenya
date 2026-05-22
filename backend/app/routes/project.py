@@ -1,25 +1,13 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from app import db
 from app.models.project import Project
+from app.models.user import User
 
 project_bp = Blueprint("projects", __name__)
 
 
 @project_bp.route("/", methods=["POST"])
-@jwt_required()
 def create_project():
-
-    current_user_id = get_jwt_identity()
-    claims = get_jwt()
-
-    role = claims.get("role")
-
-    # Only project owners can create projects
-    if role != "project_owner":
-        return jsonify({
-            "error": "Unauthorized"
-        }), 403
 
     data = request.get_json()
 
@@ -27,18 +15,31 @@ def create_project():
     description = data.get("description")
     category = data.get("category")
     budget = data.get("budget")
+    owner_id = data.get("owner_id")
 
-    if not name or not budget:
+    if not name or not budget or not owner_id:
         return jsonify({
-            "error": "Name and budget are required"
+            "error": "Name, budget and owner_id are required"
         }), 400
+
+    user = User.query.get(owner_id)
+
+    if not user:
+        return jsonify({
+            "error": "User not found"
+        }), 404
+
+    if user.role != "project_owner":
+        return jsonify({
+            "error": "Only project owners can create projects"
+        }), 403
 
     project = Project(
         name=name,
         description=description,
         category=category,
         budget=budget,
-        owner_id=current_user_id
+        owner_id=owner_id
     )
 
     db.session.add(project)
