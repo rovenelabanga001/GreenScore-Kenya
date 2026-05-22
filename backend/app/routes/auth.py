@@ -1,5 +1,4 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import create_access_token
 from app import db
 from app.models.user import User
 
@@ -18,7 +17,6 @@ def register():
     password = data.get("password")
     role = data.get("role")
 
-    # Validation
     if not username or not email or not password or not role:
         return jsonify({
             "error": "All fields are required"
@@ -76,16 +74,16 @@ def login():
             "error": "Invalid email or password"
         }), 401
 
-    access_token = create_access_token(
-        identity=str(user.id),
-        additional_claims={
-            "role": user.role
-        }
-    )
-
     return jsonify({
         "message": "Login successful",
-        "token": access_token,
         "role": user.role,
         "user": user.to_dict()
+    }), 200
+
+
+@auth_bp.route("/logout", methods=["POST"])
+def logout():
+
+    return jsonify({
+        "message": "Logout successful"
     }), 200
