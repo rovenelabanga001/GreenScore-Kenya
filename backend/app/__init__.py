@@ -24,7 +24,9 @@ def create_app():
     from app.models.greenscore import GreenScore
 
     from app.routes.auth import auth_bp
+    from app.routes.project import project_bp
 
     app.register_blueprint(auth_bp, url_prefix="/auth")
+    app.register_blueprint(project_bp, url_prefix="/projects")
 
     return app
