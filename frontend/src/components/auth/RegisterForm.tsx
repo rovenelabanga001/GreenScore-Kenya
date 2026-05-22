@@ -6,6 +6,8 @@ import { Eye, EyeOff, Loader2, ArrowRight, Leaf, Sprout, Building2, ClipboardChe
 
 type Role = 'owner' | 'funder' | 'admin'
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i
+
 const ROLES = [
   {
     id: 'owner' as Role,
@@ -19,17 +21,12 @@ const ROLES = [
     label: 'Funder / Investor',
     description: 'Discover & finance verified green projects',
   },
-  {
-    id: 'admin' as Role,
-    Icon: ClipboardCheck,
-    label: 'Admin / Reviewer',
-    description: 'Review and verify project submissions',
-  },
 ]
 
 export default function RegisterForm() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [emailTouched, setEmailTouched] = useState(false)
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -46,12 +43,19 @@ export default function RegisterForm() {
     return { level: 3, label: 'Strong', color: 'bg-secondary' }
   })()
 
+  const isEmailValid = EMAIL_REGEX.test(email.trim())
+  const showEmailError = emailTouched && email.length > 0 && !isEmailValid
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setError('')
 
     if (!name || !email || !password || !confirmPassword) {
       setError('Please fill in all fields.')
+      return
+    }
+    if (!EMAIL_REGEX.test(email.trim())) {
+      setError('Please enter a valid email address.')
       return
     }
     if (password !== confirmPassword) {
@@ -120,10 +124,26 @@ export default function RegisterForm() {
             autoComplete="email"
             required
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value)
+              if (!emailTouched) return
+              if (error === 'Please enter a valid email address.') {
+                setError('')
+              }
+            }}
+            onBlur={() => setEmailTouched(true)}
             placeholder="you@example.com"
-            className="w-full px-4 py-3 rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface placeholder:text-on-surface-variant/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-shadow"
+            aria-invalid={showEmailError}
+            aria-describedby={showEmailError ? 'reg-email-error' : undefined}
+            className={`w-full px-4 py-3 rounded-xl border bg-surface-container-lowest text-on-surface placeholder:text-on-surface-variant/50 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition-shadow ${
+              showEmailError ? 'border-error focus:ring-error' : 'border-outline-variant focus:ring-primary'
+            }`}
           />
+          {showEmailError && (
+            <p id="reg-email-error" className="mt-1 text-xs text-error">
+              Enter a valid email address
+            </p>
+          )}
         </div>
 
         {/* Password */}
