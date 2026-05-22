@@ -1,12 +1,14 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Eye, EyeOff, Loader2, ArrowRight, Leaf, Sprout, Building2, ClipboardCheck } from 'lucide-react'
+import { Eye, EyeOff, Loader2, ArrowRight, Leaf, Sprout, Building2 } from 'lucide-react'
 
-type Role = 'owner' | 'funder' | 'admin'
+type Role = 'owner' | 'funder'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i
+const API_BASE_URL = 'https://greenscore-kenya.onrender.com'
 
 const ROLES = [
   {
@@ -24,6 +26,7 @@ const ROLES = [
 ]
 
 export default function RegisterForm() {
+  const router = useRouter()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [emailTouched, setEmailTouched] = useState(false)
@@ -72,10 +75,39 @@ export default function RegisterForm() {
     }
 
     setLoading(true)
-    // TODO: replace with real registration call
-    await new Promise((r) => setTimeout(r, 1400))
-    setLoading(false)
-    setError('Registration service is not yet connected.')
+    try {
+      const backendRole = role === 'owner' ? 'project_owner' : 'funder'
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: name.trim(),
+          email: email.trim(),
+          password,
+          role: backendRole,
+        }),
+      })
+
+      const data = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        setError(data.error ?? 'Unable to create account. Please try again.')
+        return
+      }
+
+      if (data.user) {
+        localStorage.setItem('auth_user', JSON.stringify(data.user))
+        localStorage.setItem('auth_role', String(data.user.role ?? backendRole))
+      }
+
+      router.push('/login')
+    } catch {
+      setError('Cannot reach auth server. Confirm backend is running at https://greenscore-kenya.onrender.com.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ArrowLeft, ArrowRight, Leaf, Loader2, MailCheck } from 'lucide-react'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i
+const API_BASE_URL = 'https://greenscore-kenya.onrender.com'
 
 export default function PasswordReset() {
   const [email, setEmail] = useState('')
@@ -31,10 +32,29 @@ export default function PasswordReset() {
     }
 
     setLoading(true)
-    // TODO: replace with real reset-password call
-    await new Promise((r) => setTimeout(r, 1200))
-    setLoading(false)
-    setSubmittedEmail(email.trim())
+    try {
+      const trimmedEmail = email.trim()
+      const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: trimmedEmail }),
+      })
+
+      const data = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        setError(data.error ?? 'Unable to send reset link. Please try again.')
+        return
+      }
+
+      setSubmittedEmail(trimmedEmail)
+    } catch {
+      setError('Cannot reach auth server. Confirm backend is running at https://greenscore-kenya.onrender.com.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (

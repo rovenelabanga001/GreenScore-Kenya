@@ -30,6 +30,11 @@ class User(db.Model):
         nullable=False
     )
 
+    target_green_score = db.Column(
+        db.Float,
+        nullable=True
+    )
+
     created_at = db.Column(
         db.DateTime,
         default=datetime.utcnow
@@ -39,7 +44,15 @@ class User(db.Model):
         "Project",
         backref="owner",
         lazy=True,
+        foreign_keys="Project.owner_id",
         cascade="all, delete"
+    )
+
+    funded_projects = db.relationship(
+        "Project",
+        back_populates="funder",
+        lazy=True,
+        foreign_keys="Project.funded_by"
     )
 
     def set_password(self, password):
@@ -54,6 +67,7 @@ class User(db.Model):
             "username": self.username,
             "email": self.email,
             "role": self.role,
+            "target_green_score": self.target_green_score,
             "created_at": self.created_at.isoformat() if self.created_at else None
         }
 

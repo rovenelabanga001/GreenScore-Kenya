@@ -2,6 +2,15 @@ from datetime import datetime
 from app import db
 
 
+WEIGHTS = {
+    "environmental_impact": 0.35,
+    "social_impact": 0.20,
+    "governance_and_transparency": 0.20,
+    "financial_readiness": 0.15,
+    "climate_risk_adjustment": 0.10,
+}
+
+
 class GreenScore(db.Model):
     __tablename__ = "greenscores"
 
@@ -50,13 +59,14 @@ class GreenScore(db.Model):
     )
 
     def calculate_total_score(self):
-        self.total_score = (
-            self.environmental_impact +
-            self.social_impact +
-            self.governance_and_transparency +
-            self.financial_readiness +
-            self.climate_risk_adjustment
-        ) / 5
+        self.total_score = round(
+            (self.environmental_impact * WEIGHTS["environmental_impact"]) +
+            (self.social_impact * WEIGHTS["social_impact"]) +
+            (self.governance_and_transparency * WEIGHTS["governance_and_transparency"]) +
+            (self.financial_readiness * WEIGHTS["financial_readiness"]) +
+            (self.climate_risk_adjustment * WEIGHTS["climate_risk_adjustment"]),
+            2
+        )
 
     def to_dict(self):
         return {

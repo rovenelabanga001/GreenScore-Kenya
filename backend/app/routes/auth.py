@@ -116,3 +116,48 @@ def forgot_password():
     return jsonify({
         "message": EMAIL_RESET_MESSAGE
     }), 200
+
+
+@auth_bp.route("/funder-target", methods=["PATCH"])
+def set_funder_target_score():
+
+    data = request.get_json() or {}
+
+    user_id = data.get("user_id")
+    target_green_score = data.get("target_green_score")
+
+    if user_id is None or target_green_score is None:
+        return jsonify({
+            "error": "user_id and target_green_score are required"
+        }), 400
+
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({
+            "error": "User not found"
+        }), 404
+
+    if user.role != "funder":
+        return jsonify({
+            "error": "Only funders can set target green score"
+        }), 403
+
+    try:
+        parsed_score = float(target_green_score)
+    except (TypeError, ValueError):
+        return jsonify({
+            "error": "target_green_score must be a valid number"
+        }), 400
+
+    if parsed_score < 0 or parsed_score > 100:
+        return jsonify({
+            "error": "target_green_score must be between 0 and 100"
+        }), 400
+
+    user.target_green_score = parsed_score
+    db.session.commit()
+
+    return jsonify({
+        "message": "Target green score saved",
+        "user": user.to_dict()
+    }), 200

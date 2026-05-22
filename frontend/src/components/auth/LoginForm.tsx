@@ -1,15 +1,24 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff, Loader2, ArrowRight, Leaf } from 'lucide-react'
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i
+const API_BASE_URL = 'https://greenscore-kenya.onrender.com'
+
 export default function LoginForm() {
+  const router = useRouter()
   const [email, setEmail] = useState('')
+  const [emailTouched, setEmailTouched] = useState(false)
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  const isEmailValid = EMAIL_REGEX.test(email.trim())
+  const showEmailError = emailTouched && email.length > 0 && !isEmailValid
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -19,12 +28,48 @@ export default function LoginForm() {
       setError('Please fill in all fields.')
       return
     }
+    if (!isEmailValid) {
+      setError('Please enter a valid email address.')
+      return
+    }
 
     setLoading(true)
-    // TODO: replace with real auth call
-    await new Promise((r) => setTimeout(r, 1200))
-    setLoading(false)
-    setError('Authentication service is not yet connected.')
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+        }),
+      })
+
+      const data = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        setError(data.error ?? 'Unable to sign in. Please try again.')
+        return
+      }
+
+      const token = data.token ?? data.access_token ?? null
+      if (token) {
+        localStorage.setItem('auth_token', token)
+      }
+      if (data.user) {
+        localStorage.setItem('auth_user', JSON.stringify(data.user))
+      }
+      if (data.role) {
+        localStorage.setItem('auth_role', String(data.role))
+      }
+
+      router.push('/dashboard')
+    } catch {
+      setError('Cannot reach auth server. Confirm backend is running at https://greenscore-kenya.onrender.com.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -56,10 +101,25 @@ export default function LoginForm() {
             autoComplete="email"
             required
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value)
+              if (error === 'Please enter a valid email address.') {
+                setError('')
+              }
+            }}
+            onBlur={() => setEmailTouched(true)}
             placeholder="you@example.com"
-            className="w-full px-4 py-3 rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface placeholder:text-on-surface-variant/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-shadow"
+            aria-invalid={showEmailError}
+            aria-describedby={showEmailError ? 'login-email-error' : undefined}
+            className={`w-full px-4 py-3 rounded-xl border bg-surface-container-lowest text-on-surface placeholder:text-on-surface-variant/50 text-sm focus:outline-none focus:ring-2 focus:border-transparent transition-shadow ${
+              showEmailError ? 'border-error focus:ring-error' : 'border-outline-variant focus:ring-primary'
+            }`}
           />
+          {showEmailError && (
+            <p id="login-email-error" className="mt-1 text-xs text-error">
+              Enter a valid email address
+            </p>
+          )}
         </div>
 
         {/* Password */}
