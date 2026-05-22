@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import create_access_token
 from app import db
 from app.models.user import User
 
@@ -53,3 +54,38 @@ def register():
         "message": "Registration successful",
         "user": user.to_dict()
     }), 201
+
+
+@auth_bp.route("/login", methods=["POST"])
+def login():
+
+    data = request.get_json()
+
+    email = data.get("email")
+    password = data.get("password")
+
+    if not email or not password:
+        return jsonify({
+            "error": "Email and password are required"
+        }), 400
+
+    user = User.query.filter_by(email=email).first()
+
+    if not user or not user.check_password(password):
+        return jsonify({
+            "error": "Invalid email or password"
+        }), 401
+
+    access_token = create_access_token(
+        identity=str(user.id),
+        additional_claims={
+            "role": user.role
+        }
+    )
+
+    return jsonify({
+        "message": "Login successful",
+        "token": access_token,
+        "role": user.role,
+        "user": user.to_dict()
+    }), 200
